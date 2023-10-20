@@ -4,9 +4,13 @@ import TodoForm from "../Home";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {AiOutlinePlus} from 'react-icons/ai'
+import { AiOutlinePlus } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { toggle } from "../../store/reducers/toggleReducer";
+import {auth} from "../../services/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { fetchTasks } from "../../store/reducers/todoReducer";
+import { AnyAction } from "@reduxjs/toolkit";
 
 export default function Card() {
   const [ano, setAno] = useState("");
@@ -17,6 +21,18 @@ export default function Card() {
   const toogleModal = useSelector((state: any) => state.toggle);
   const dispatch = useDispatch();
 
+  const authenticator = () => {
+    console.log("entrou");
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        console.log(result);
+        dispatch(fetchTasks() as unknown as AnyAction);
+      })
+      .catch((error) => {
+        console.log("deu errado", error);
+      });
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -44,7 +60,7 @@ export default function Card() {
         <header className={styles.main__card}>
           <div className={styles.main__card__body}>
             <div className={styles.main__card__body__head}>
-              <div className={styles.main__card__body__head__img}></div>
+              <div className={styles.main__card__body__head__img} onClick={authenticator}></div>
               <h1 className={styles.h1}>Usuário</h1>
             </div>
             <Select />
@@ -92,14 +108,17 @@ export default function Card() {
                 {diaSemana}
               </h1>
             </div>
-            <button className={styles.main__card__time__add} onClick={() => dispatch(toggle())}>
-                <AiOutlinePlus size={30} color="black" />
+            <button
+              className={styles.main__card__time__add}
+              onClick={() => dispatch(toggle())}
+            >
+              <AiOutlinePlus size={30} color="black" />
             </button>
           </div>
         </header>
       </main>
-      <div style={toogleModal?{}:{display:"none"}}>
-         <TodoForm/>
+      <div style={toogleModal ? {} : { display: "none" }}>
+        <TodoForm />
       </div>
     </div>
   );

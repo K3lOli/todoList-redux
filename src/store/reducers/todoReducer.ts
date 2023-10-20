@@ -1,105 +1,85 @@
-// import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { createSlice } from '@reduxjs/toolkit';
-// import { getDatabase, ref, set, update, remove } from 'firebase/database';
+// Importe as dependências necessárias
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { ref, push, update, remove, get } from 'firebase/database';
+import { db } from '../../services/firebase'; // Importe sua instância 'db' do serviço Firebase
 
-export interface Todo {
+// Importe a interface 'Todo'
+interface Todo {
   id: number;
   text: string | null;
   completed: boolean;
 }
 
+// Use o estado inicial 'initialState' com a interface 'Todo[]'
 const initialState: Todo[] = [];
 
-// export const adictionTodo = createAsyncThunk('todos/addTodo', async (text:string|null, { dispatch }) => {
-//   const db = getDatabase();
-//   const todosRef = ref(db, 'todos');
+// Crie um `createAsyncThunk` para buscar as tarefas do Firebase
+export const fetchTasks = createAsyncThunk('todos/fetchTasks', async () => {
+  const tasksRef = ref(db, 'tasks');
+  const snapshot = await get(tasksRef);
 
-//   const newTodo = {
-//     text,
-//     completed: false,
-//   };
+  const tasks: Todo[] = [];
+  snapshot.forEach((childSnapshot) => {
+    const task: Todo = {
+      id: childSnapshot.key,
+      ...childSnapshot.val(),
+    };
+    tasks.push(task);
+  });
 
-//   try {
-//     await set(todosRef, newTodo);
-//     return newTodo;
-//   } catch (error) {
-//     console.error('Erro ao adicionar tarefa:', error);
-//     throw error;
-//   }
-// });
+  // Retorne uma promessa que resolve com as tarefas (uma ação válida)
+  return tasks;
+});
 
-// // Ação assíncrona para atualizar uma tarefa
-// export const updateTodo = createAsyncThunk<{ id: number, completed: boolean }, { id: number, completed: boolean }>('todos/updateTodo', async ({ id, completed }, { dispatch }) => {
-//   const db = getDatabase();
-//   const todoRef = ref(db, `todos/${id}`);
-
-//   try {
-//     await update(todoRef, { completed });
-//     return { id, completed };
-//   } catch (error) {
-//     console.error('Erro ao atualizar tarefa:', error);
-//     throw error;
-//   }
-// });
-
-// // Ação assíncrona para excluir uma tarefa
-// export const removeTodo = createAsyncThunk('todos/deleteTodo', async (id: number, { dispatch }) => {
-//   const db = getDatabase();
-//   const todoRef = ref(db, `todos/${id}`);
-
-//   try {
-//     await remove(todoRef);
-//     return id;
-//   } catch (error) {
-//     console.error('Erro ao excluir tarefa:', error);
-//     throw error;
-//   }
-// });
-
+// Crie o slice Redux
 const todoSlice = createSlice({
   name: 'todos',
   initialState,
   reducers: {
     addTodo: (state, action) => {
-      state.push({
+      // Adicione a tarefa ao estado Redux
+      const newTask: Todo = {
         id: Date.now(),
         text: action.payload,
         completed: false,
-      });
-      console.log(state.length)
+      };
+      state.push(newTask);
+
+      // Adicione a tarefa ao Firebase Realtime Database
+      const tasksRef = ref(db, 'tasks');
+      push(tasksRef, newTask);
     },
     toggleTodo: (state, action) => {
-      const todo = state.find((t) => t.id === action.payload);
-      if (todo) {
-        todo.completed = !todo.completed;
+      // Encontre a tarefa no estado Redux e altere o valor de 'completed'
+      const task = state.find((t) => t.id === action.payload);
+      if (task) {
+        task.completed = !task.completed;
+
+        // Atualize a tarefa no Firebase Realtime Database
+        const taskRef = ref(db, `tasks/${action.payload}`);
+        update(taskRef, { completed: task.completed });
       }
     },
     deleteTodo: (state, action) => {
+      // Encontre o índice da tarefa no estado Redux e exclua-a
       const index = state.findIndex((t) => t.id === action.payload);
       if (index !== -1) {
         state.splice(index, 1);
-        console.log(state)
+
+        // Exclua a tarefa do Firebase Realtime Database
+        const taskRef = ref(db, `tasks/${action.payload}`);
+        remove(taskRef);
       }
     },
   },
-  // extraReducers: (builder) => {
-  //   builder
-  //     .addCase(adictionTodo.fulfilled, (state, action) => {
-  //       state.push({ id: Date.now(), ...action.payload });
-  //     })
-  //     .addCase(updateTodo.fulfilled, (state, action) => {
-  //       const { id, completed } = action.payload;
-  //       const todo = state.find((t) => t.id === id);
-  //       if (todo) {
-  //         todo.completed = completed;
-  //       }
-  //     })
-  //     .addCase(removeTodo.fulfilled, (state, action) => {
-  //       const id = action.payload;
-  //       return state.filter((todo) => todo.id !== id);
-  //     });
-  // },
+  extraReducers: (builder) => {
+    // Lidar com o caso de sucesso do `fetchTasks`
+    builder.addCase(fetchTasks.fulfilled, (_, action) => {
+      return action.payload; // Atualize o estado com as tarefas buscadas
+    });
+  },
 });
 
+// Exporte as ações e o reducer
 export const { addTodo, toggleTodo, deleteTodo } = todoSlice.actions;
 export default todoSlice.reducer;
