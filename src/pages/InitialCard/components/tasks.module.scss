@@ -1,0 +1,42 @@
+.select {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  border-radius: 100%;
+  background-color: white;
+  border-color: #ab94ff;
+  border-width: medium;
+  border-style: solid;
+  &__selected {
+    display: flex;
+    width: 20px;
+    height: 20px;
+    border-radius: 100%;
+    background-color: #ab94ff;
+    border-color: #ab94ff;
+    border-width: medium;
+    border-style: solid;
+  }
+}
+.tasks {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin-right: 24px;
+  width: 100%;
+  border-bottom-style: solid;
+  border-color: #d2c5fb;
+  border-width: thin;
+  padding-bottom: 10px;
+  &__information {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+  }
+}
+
+.todos {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
